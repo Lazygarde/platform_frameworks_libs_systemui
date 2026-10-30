@@ -154,6 +154,20 @@ public class IconProvider {
             icon = ClockDrawableWrapper.forPackage(mContext, mClock.getPackageName(), iconDpi);
         }
         if (icon == null) {
+            // First attempt to load themed app icon via PackageManager (clone AI Cleaner LauncherIconLoader logic)
+            try {
+                if (mContext != null && mContext.getPackageManager() != null) {
+                    if (info != null) {
+                        icon = info.loadIcon(mContext.getPackageManager());
+                    }
+                    if (icon == null && packageName != null) {
+                        icon = mContext.getPackageManager().getApplicationIcon(packageName);
+                    }
+                }
+            } catch (Throwable ignored) {
+            }
+        }
+        if (icon == null) {
             icon = loadPackageIconWithFallback(info, appInfo, iconDpi);
             if (ATLEAST_T && icon instanceof AdaptiveIconDrawable && td != null) {
                 CustomAdaptiveIconDrawable aid = (CustomAdaptiveIconDrawable) CustomAdaptiveIconDrawable.wrapNonNull(

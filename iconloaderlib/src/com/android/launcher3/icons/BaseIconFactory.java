@@ -24,6 +24,7 @@ import android.graphics.Bitmap.Config;
 import android.graphics.BitmapShader;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.PaintFlagsDrawFilter;
 import android.graphics.Path;
@@ -402,8 +403,7 @@ public class BaseIconFactory implements AutoCloseable {
                 outScale[0] = ICON_VISIBLE_AREA_FACTOR;
                 return wrapToAdaptiveIcon(icon);
             } else {
-                scale = new IconNormalizer(mIconBitmapSize).getScale(icon);
-                outScale[0] = scale;
+                outScale[0] = 1.0f;
                 return icon;
             }
         }
@@ -533,6 +533,13 @@ public class BaseIconFactory implements AutoCloseable {
             icon.setBounds(left, top, left + width, top + height);
 
             canvas.save();
+            if (CustomAdaptiveIconDrawable.sMask != null) {
+                Matrix maskMatrix = new Matrix();
+                maskMatrix.setScale(size / 100f, size / 100f);
+                Path clipMask = new Path();
+                CustomAdaptiveIconDrawable.sMask.transform(maskMatrix, clipMask);
+                canvas.clipPath(clipMask);
+            }
             canvas.scale(scale, scale, size / 2, size / 2);
             icon.draw(canvas);
             canvas.restore();

@@ -103,7 +103,7 @@ public class CustomAdaptiveIconDrawable extends AdaptiveIconDrawable implements 
     private static final float DEFAULT_VIEW_PORT_SCALE = 1f / (1 + 2 * EXTRA_INSET_PERCENTAGE);
 
 
-    private static final String sMaskPath = "M50 0C77.6 0 100 22.4 100 50C100 77.6 77.6 100 50 100C22.4 100 0 77.6 0 50C0 22.4 22.4 0 50 0Z";
+    private static final String sMaskPath = "M 22,0 L 78,0 C 90,0 100,10 100,22 L 100,78 C 100,90 90,100 78,100 L 22,100 C 10,100 0,90 0,78 L 0,22 C 0,10 10,0 22,0 Z";
     
     public static boolean sInitialized = false;
     public static String sMaskId;
