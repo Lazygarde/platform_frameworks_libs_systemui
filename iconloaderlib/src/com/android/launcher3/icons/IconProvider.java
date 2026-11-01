@@ -59,6 +59,7 @@ import java.util.Calendar;
 import java.util.Objects;
 
 import app.lawnchair.icons.CustomAdaptiveIconDrawable;
+import app.lawnchair.icons.ExtendedBitmapDrawable;
 
 /**
  * Class to handle icon loading from different packages
@@ -157,11 +158,17 @@ public class IconProvider {
             // First attempt to load themed app icon via PackageManager (clone AI Cleaner LauncherIconLoader logic)
             try {
                 if (mContext != null && mContext.getPackageManager() != null) {
-                    if (info != null) {
+                    if (packageName != null) {
+                        try {
+                            icon = mContext.getPackageManager().getApplicationIcon(packageName);
+                        } catch (Throwable ignored) {
+                        }
+                    }
+                    if (icon == null && info != null) {
                         icon = info.loadIcon(mContext.getPackageManager());
                     }
-                    if (icon == null && packageName != null) {
-                        icon = mContext.getPackageManager().getApplicationIcon(packageName);
+                    if (icon != null) {
+                        icon = ExtendedBitmapDrawable.wrap(mContext.getResources(), icon, true);
                     }
                 }
             } catch (Throwable ignored) {
