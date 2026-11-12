@@ -150,13 +150,19 @@ constructor(
                             trySend(DisplayEvent.Changed(displayId))
                         }
                     }
-                displayManager.registerDisplayListener(
-                    callback,
-                    backgroundHandler,
-                    EVENT_TYPE_DISPLAY_ADDED or
-                        EVENT_TYPE_DISPLAY_CHANGED or
-                        EVENT_TYPE_DISPLAY_REMOVED,
-                )
+                try {
+                    displayManager.registerDisplayListener(
+                        callback,
+                        backgroundHandler,
+                        EVENT_TYPE_DISPLAY_ADDED or
+                            EVENT_TYPE_DISPLAY_CHANGED or
+                            EVENT_TYPE_DISPLAY_REMOVED,
+                    )
+                } catch (t: Throwable) {
+                    // LC-Note: 3-arg registerDisplayListener with eventFlags is @hide non-SDK,
+                    // fall back to public 2-arg registerDisplayListener.
+                    displayManager.registerDisplayListener(callback, backgroundHandler)
+                }
                 awaitClose { displayManager.unregisterDisplayListener(callback) }
             }
             .conflate()
@@ -243,6 +249,7 @@ constructor(
     private val ignoredDisplayIds: Flow<Set<Int>> = _ignoredDisplayIds.debugLog("ignoredDisplayIds")
 
     private fun getInitialConnectedDisplays(): Set<Int> =
+        try {
             displayManager
                 .getDisplays(DISPLAY_CATEGORY_ALL_INCLUDING_DISABLED)
                 .map { it.displayId }
@@ -252,6 +259,10 @@ constructor(
                         Log.d(TAG, "getInitialConnectedDisplays: $it")
                     }
                 }
+        } catch (t: Throwable) {
+            // LC-Note: DISPLAY_CATEGORY_ALL_INCLUDING_DISABLED may fail or be non-SDK on some ROMs
+            initialDisplayIds
+        }
 
     /* keeps connected displays until they are disconnected. */
     private val connectedDisplayIds: StateFlow<Set<Int>> =
@@ -278,13 +289,26 @@ constructor(
                         }
                     }
                 trySend(connectedIds.toSet())
-                displayManager.registerDisplayListener(
-                    callback,
-                    backgroundHandler,
-                    /* eventFlags */ 0,
-                    DisplayManager.PRIVATE_EVENT_TYPE_DISPLAY_CONNECTION_CHANGED,
-                )
-                awaitClose { displayManager.unregisterDisplayListener(callback) }
+                var registered = false
+                try {
+                    displayManager.registerDisplayListener(
+                        callback,
+                        backgroundHandler,
+                        /* eventFlags */ 0,
+                        DisplayManager.PRIVATE_EVENT_TYPE_DISPLAY_CONNECTION_CHANGED,
+                    )
+                    registered = true
+                } catch (t: Throwable) {
+                    // LC-Note: 4-arg registerDisplayListener is non-SDK and throws NoSuchMethodError
+                }
+                awaitClose {
+                    if (registered) {
+                        try {
+                            displayManager.unregisterDisplayListener(callback)
+                        } catch (t: Throwable) {
+                        }
+                    }
+                }
             }
             .conflate()
             .distinctUntilChanged()
@@ -309,7 +333,12 @@ constructor(
             .flowOn(backgroundCoroutineDispatcher)
             .debugLog("connectedExternalDisplayIds")
 
-    private fun getDisplayType(displayId: Int): Int? = displayManager.getDisplay(displayId)?.type
+    private fun getDisplayType(displayId: Int): Int? =
+        try {
+            displayManager.getDisplay(displayId)?.type
+        } catch (t: Throwable) {
+            null
+        }
 
     private fun getDisplayFromDisplayManager(displayId: Int): Display? = displayManager.getDisplay(displayId)
 

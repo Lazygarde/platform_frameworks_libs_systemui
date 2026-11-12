@@ -41,7 +41,7 @@ interface DisplayLibComponent {
     interface Factory {
         fun create(
             @BindsInstance displayManager: DisplayManager,
-            @BindsInstance windowManager: IWindowManager,
+            @BindsInstance windowManager: IWindowManager?,
             @BindsInstance bgHandler: Handler,
             @BindsInstance bgApplicationScope: CoroutineScope,
             @BindsInstance backgroundCoroutineDispatcher: CoroutineDispatcher,
@@ -72,7 +72,7 @@ interface DisplayLibModule {
  */
 fun createDisplayLibComponent(
     displayManager: DisplayManager,
-    windowManager: IWindowManager,
+    windowManager: IWindowManager?,
     bgHandler: Handler,
     bgApplicationScope: CoroutineScope,
     backgroundCoroutineDispatcher: CoroutineDispatcher,

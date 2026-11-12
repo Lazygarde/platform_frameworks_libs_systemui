@@ -44,12 +44,16 @@ interface DisplaysWithDecorationsRepository {
 class DisplaysWithDecorationsRepositoryImpl
 @Inject
 constructor(
-    private val windowManager: IWindowManager,
+    private val windowManager: IWindowManager?,
     bgApplicationScope: CoroutineScope,
     displayRepository: DisplayRepository,
 ) : DisplaysWithDecorationsRepository {
 
     private val decorationEvents: Flow<Event> = callbackFlow {
+        val wm = windowManager ?: run {
+            awaitClose {}
+            return@callbackFlow
+        }
         val callback =
             object : IDisplayWindowListener.Stub() {
                 override fun onDisplayAddSystemDecorations(displayId: Int) {
@@ -78,13 +82,32 @@ constructor(
                     p2: MutableList<Rect>?,
                 ) {}
             }
-        windowManager.registerDisplayWindowListener(callback)
-        awaitClose { windowManager.unregisterDisplayWindowListener(callback) }
+        var registered = false
+        try {
+            wm.registerDisplayWindowListener(callback)
+            registered = true
+        } catch (t: Throwable) {
+            // LC-Ignored: non-SDK / requires system permission
+        }
+        awaitClose {
+            if (registered) {
+                try {
+                    wm.unregisterDisplayWindowListener(callback)
+                } catch (t: Throwable) {
+                }
+            }
+        }
     }
 
     private val initialDisplayIdsWithDecorations: Set<Int> =
         displayRepository.displayIds.value
-            .filter { windowManager.shouldShowSystemDecors(it) }
+            .filter {
+                try {
+                    windowManager?.shouldShowSystemDecors(it) ?: true
+                } catch (t: Throwable) {
+                    true
+                }
+            }
             .toSet()
 
     /**
